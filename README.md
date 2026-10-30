@@ -71,19 +71,39 @@ Settings lets you choose what happens next:
 
 All of them can be changed in Settings. While selecting, press Esc or right-click to cancel.
 
-## Requirements
+## Download
+
+Get the `.dmg` from the [latest release](https://github.com/TheRoben-Dev/Screening/releases/latest), open it and drag Screening to Applications. It needs macOS 26 or later.
+
+**macOS will block the first launch.** The app isn't signed with an Apple Developer ID or notarized, so macOS can't verify who made it, and it may say the app can't be opened. To open it anyway:
+
+1. Try to open Screening, then dismiss the warning.
+2. Go to **System Settings > Privacy & Security** and scroll down to the Security section.
+3. Click **Open Anyway** next to the Screening message, then confirm.
+
+You only have to do this once. Only do it if you're comfortable running AI-written software from an unverified developer. You can read the source here and build it yourself instead.
+
+**Updating:** each release counts as a new app to macOS, so you may need to grant Screen Recording again. See [Permissions](#permissions).
+
+## Requirements for building
 
 - macOS 26 or later, because the interface uses Liquid Glass APIs
 - Xcode 26 or later
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen): `brew install xcodegen`
 
-## Build and install
+## Build from source
 
 ```bash
 scripts/build.sh
 ```
 
 This generates the Xcode project, builds a Release version and installs it to `/Applications/Screening.app`, replacing any existing copy.
+
+To package a `.dmg` without installing anything:
+
+```bash
+scripts/make_dmg.sh
+```
 
 To work on it in Xcode:
 
@@ -109,7 +129,7 @@ iCloud adds file attributes that make `codesign` fail with "resource fork, Finde
 
 Screening needs **Screen Recording** access. Your first capture brings up the system prompt. Turn Screening on in System Settings under Privacy & Security, then quit and reopen the app.
 
-The default build is signed ad hoc, so macOS treats every rebuild as a new app and the old permission stops applying. If Screening doesn't detect its access after a rebuild, quit it and reset the entry:
+Builds are signed ad hoc, so macOS treats every rebuild or new release as a new app and the old permission stops applying. If Screening doesn't detect its access after an update, quit it and reset the entry:
 
 ```bash
 tccutil reset ScreenCapture com.theroben.Screening
@@ -158,7 +178,7 @@ These are useful for development and scripting:
 
 ## Testing status
 
-This project has only been built and run on one Mac, on macOS 27 with Xcode 27.
+This project has only been built and run on one Apple silicon Mac, on macOS 27 with Xcode 27. The Intel half of the universal build has never been run.
 
 **Checked:**
 
@@ -180,7 +200,7 @@ The person directing the project used the app and gave feedback throughout, but 
 
 - Region captures save as sharp rectangles, while the selection box has rounded corners.
 - Scrolling capture and screen recording aren't included.
-- Builds are signed ad hoc and not notarized, so there's no ready-to-download app yet. You build it yourself.
+- Releases are signed ad hoc and not notarized, so macOS warns on first launch. See [Download](#download).
 - Files reopened from Recent Screenshots already have any shadow baked in, so the editor can't remove it from them.
 
 ## License
