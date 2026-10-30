@@ -185,6 +185,6 @@ The person directing the project used the app and gave feedback throughout, but 
 
 ## License
 
-No license has been chosen yet, so default copyright applies. The code is public to read, but reuse isn't granted.
+Screening is released under the [MIT License](LICENSE). You can use, change, fork, sell or redistribute it however you like. The one condition is that copies keep the copyright and license notice.
 
 Screening isn't affiliated with or endorsed by Apple. Apple, macOS, AirDrop and Liquid Glass are trademarks of Apple Inc.
