@@ -1,0 +1,53 @@
+name: Screening
+options:
+  bundleIdPrefix: com.theroben
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: NO
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  Screening:
+    type: application
+    platform: macOS
+    sources: [Screening]
+    info:
+      path: Screening/Info.plist
+      properties:
+        CFBundleDisplayName: Screening
+        LSApplicationCategoryType: public.app-category.utilities
+        LSUIElement: true
+        NSHumanReadableCopyright: ""
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.theroben.Screening
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+  ScreeningTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [ScreeningTests]
+    dependencies:
+      - target: Screening
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Screening.app/Contents/MacOS/Screening
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  Screening:
+    build:
+      targets:
+        Screening: all
+        ScreeningTests: [test]
+    test:
+      targets: [ScreeningTests]
