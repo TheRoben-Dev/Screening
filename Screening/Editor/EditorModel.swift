@@ -106,6 +106,9 @@ final class EditorModel {
 
     private(set) var tool: EditorTool = .arrow
     private var toolBeforeCrop: EditorTool = .arrow
+    /// The markup tools are tucked behind the toolbar's Edit button until they're wanted.
+    var isEditing = false
+    private var lastMarkupTool: EditorTool = .arrow
 
     private var penColor: AnnotationColor = .red
     private var markerColor: AnnotationColor = .yellow
@@ -192,9 +195,23 @@ final class EditorModel {
             draftCrop = crop
         }
         if newTool != .select { selectedID = nil }
+        if newTool != .select { isEditing = true }
+        if newTool != .select, newTool != .crop { lastMarkupTool = newTool }
         tool = newTool
         onToolChange?()
         redraw()
+    }
+
+    /// Opening the markup tools picks up the last one used. Closing them leaves the image safe to click.
+    func setEditing(_ editing: Bool) {
+        if editing {
+            choose(lastMarkupTool)
+            isEditing = true
+        } else {
+            choose(.select)
+            selectedID = nil
+            isEditing = false
+        }
     }
 
     func applyCrop() { choose(toolBeforeCrop == .crop ? .select : toolBeforeCrop) }

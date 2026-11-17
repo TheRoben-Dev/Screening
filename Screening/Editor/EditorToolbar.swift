@@ -10,10 +10,10 @@ enum ToolbarLevel: CaseIterable, Comparable {
     /// The narrowest toolbar width this level is guaranteed to fit in.
     var minimumWidth: CGFloat {
         switch self {
-        case .minimal: 300
-        case .condensed: 540
-        case .compact: 730
-        case .full: 930
+        case .minimal: 312
+        case .condensed: 584
+        case .compact: 652
+        case .full: 850
         }
     }
 
@@ -56,7 +56,60 @@ struct EditorToolbarContent: View {
 
     var body: some View {
         GlassEffectContainer(spacing: 10) {
+            if model.isEditing { editingBar } else { essentialsBar }
+        }
+        .background { shortcuts }
+        .animation(.smooth(duration: 0.25), value: model.tool)
+        .animation(.smooth(duration: 0.3), value: model.isEditing)
+    }
+
+    /// What most captures need: copy, pin, delete and done, with markup one click away.
+    private var essentialsBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                model.setEditing(true)
+            } label: {
+                Label("Edit", systemImage: "pencil.tip.crop.circle")
+                    .padding(.horizontal, 14)
+                    .frame(height: 40)
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .glassEffectID("tools", in: glass)
+            .help("Crop and mark up the screenshot")
+
+            HStack(spacing: 2) {
+                iconButton("pin", "Pin to Screen", action: onPin)
+                iconButton("doc.on.doc", "Copy", action: onCopy)
+                iconButton("trash", "Delete Screenshot", action: onDelete)
+            }
+            .padding(4)
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .glassEffectID("actions", in: glass)
+
+            doneButton
+        }
+    }
+
+    private var closeEditingButton: some View {
+        Button {
+            model.setEditing(false)
+        } label: {
+            Image(systemName: "chevron.backward")
+                .frame(width: 40, height: 40)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .circle)
+        .glassEffectID("close", in: glass)
+        .help("Hide the markup tools")
+        .accessibilityLabel("Hide Tools")
+    }
+
+    private var editingBar: some View {
             HStack(spacing: 10) {
+                closeEditingButton
                 if level == .minimal { toolsMenu } else { tools }
 
                 if model.tool == .crop {
@@ -65,17 +118,14 @@ struct EditorToolbarContent: View {
                     if level == .full { styleControls } else { styleButton }
                 }
 
+                // Pin, copy and delete stay on the essentials bar, which keeps this one narrower.
                 if level >= .compact {
                     history
-                    actions
                 } else {
                     moreMenu
                 }
                 doneButton
             }
-        }
-        .background { shortcuts }
-        .animation(.smooth(duration: 0.25), value: model.tool)
     }
 
     /// Always present, so the keys keep working while their buttons are collapsed into a menu.
@@ -273,14 +323,6 @@ struct EditorToolbarContent: View {
                 .disabled(!model.canUndo || model.isEditingText)
             iconButton("arrow.uturn.forward", "Redo", action: model.redo)
                 .disabled(!model.canRedo || model.isEditingText)
-        }
-        .padding(4)
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .glassEffectID("history", in: glass)
-    }
-
-    private var actions: some View {
-        HStack(spacing: 2) {
             Button(action: model.toggleShadow) {
                 shadowGlyph
                     .frame(width: 32, height: 32)
@@ -297,13 +339,10 @@ struct EditorToolbarContent: View {
             .accessibilityLabel("Shadow")
             .accessibilityValue(model.showsShadow ? "On" : "Off")
 
-            iconButton("pin", "Pin to Screen", action: onPin)
-            iconButton("doc.on.doc", "Copy", action: onCopy)
-            iconButton("trash", "Delete Screenshot", action: onDelete)
         }
         .padding(4)
         .glassEffect(.regular.interactive(), in: .capsule)
-        .glassEffectID("actions", in: glass)
+        .glassEffectID("history", in: glass)
     }
 
     private var moreMenu: some View {

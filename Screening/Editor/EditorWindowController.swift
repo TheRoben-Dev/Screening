@@ -61,6 +61,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         window.minSize = CGSize(width: Self.minimumWidth, height: Self.minimumHeight)
         window.delegate = self
         window.onEscape = { [weak self] in self?.copyAndClose() }
+        model.setEditing(false) // Opens with just the essentials; Edit brings out the markup tools.
 
         let root = ZStack(alignment: .bottom) {
             EditorCanvas(model: model) { [weak self] canvas in
@@ -84,8 +85,8 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
 
     private static let minimumWidth: CGFloat = 340
     private static let minimumHeight: CGFloat = 240
-    /// Wide enough to open with the whole toolbar showing, the user can shrink it from there.
-    private static let openingWidth: CGFloat = 960
+    /// Room for the markup tools once Edit is pressed, with colors in a popover. Wider windows show them inline.
+    private static let openingWidth: CGFloat = 760
 
     private static func initialFrame(for shot: Screenshot, showsShadow: Bool) -> CGRect {
         let margin = ScreenshotShadow.margin

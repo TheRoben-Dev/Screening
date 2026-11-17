@@ -325,6 +325,7 @@ final class ScreeningTests: XCTestCase {
             for tool in EditorTool.allCases {
                 let model = EditorModel(screenshot: Screenshot(image: makeImage(), scale: 2))
                 model.choose(tool)
+                model.isEditing = true
                 let content = EditorToolbarContent(model: model, level: level, onCopy: {}, onDelete: {}, onPin: {}, onDone: {})
                 let width = NSHostingView(rootView: content).fittingSize.width
                 print("toolbar", level, tool, width)
@@ -332,6 +333,16 @@ final class ScreeningTests: XCTestCase {
                 XCTAssertLessThanOrEqual(width, level.minimumWidth - 16, "\(level) with \(tool) needs \(width)pt")
             }
         }
+    }
+
+    @MainActor func testEssentialsToolbarFitsTheSmallestWindow() {
+        let model = EditorModel(screenshot: Screenshot(image: makeImage(), scale: 2))
+        model.setEditing(false)
+        let content = EditorToolbarContent(model: model, level: .full, onCopy: {}, onDelete: {}, onPin: {}, onDone: {})
+        XCTAssertLessThanOrEqual(NSHostingView(rootView: content).fittingSize.width, ToolbarLevel.minimal.minimumWidth - 16)
+        XCTAssertEqual(model.tool, .select)
+        model.choose(.pen) // A tool's key brings the tools out.
+        XCTAssertTrue(model.isEditing)
     }
 
     @MainActor func testSmallestToolbarFitsTheSmallestWindow() {
