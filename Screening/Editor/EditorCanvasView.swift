@@ -148,6 +148,8 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
     override func draw(_ dirtyRect: NSRect) {
         guard let cg = NSGraphicsContext.current?.cgContext else { return }
         let frame = imageFrame, display = model.displayRect, scale = viewScale
+        let inset = bounds.height - frame.maxY
+        if abs(model.imageBottomInset - inset) > 0.5 { model.imageBottomInset = inset }
 
         // The window has no background, but fully clear pixels let clicks fall through to the app
         // behind. A wash too faint to see keeps the empty space part of the editor.

@@ -58,7 +58,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         // The image draws its own shadow, and a system shadow traced from transparent content goes stale.
         window.hasShadow = false
         window.isReleasedWhenClosed = false
-        window.minSize = CGSize(width: Self.minimumWidth, height: 340)
+        window.minSize = CGSize(width: Self.minimumWidth, height: Self.minimumHeight)
         window.delegate = self
         window.onEscape = { [weak self] in self?.copyAndClose() }
 
@@ -75,7 +75,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
                 onPin: { [weak self] in self?.pin() },
                 onDone: { [weak self] in self?.done() }
             )
-            .padding(.bottom, 20)
+            .modifier(HugsImage(model: model))
         }
         let hosting = NSHostingView(rootView: root)
         hosting.sizingOptions = []
@@ -83,6 +83,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
     }
 
     private static let minimumWidth: CGFloat = 340
+    private static let minimumHeight: CGFloat = 240
     /// Wide enough to open with the whole toolbar showing, the user can shrink it from there.
     private static let openingWidth: CGFloat = 960
 
@@ -93,7 +94,8 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         let content = CGSize(width: CGFloat(shot.image.width) / shot.scale + 48 + extra.width,
                              height: CGFloat(shot.image.height) / shot.scale + 44 + 88 + extra.height)
         let width = min(max(content.width, openingWidth), visible.width * 0.9)
-        let height = min(max(content.height, 480), visible.height * 0.9)
+        // Only as tall as the image needs, so the window buttons and toolbar sit right by it.
+        let height = min(max(content.height, minimumHeight), visible.height * 0.9)
         return CGRect(x: visible.midX - width / 2, y: visible.midY - height / 2, width: width, height: height)
     }
 
@@ -186,5 +188,18 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
             }
         }
         return false
+    }
+}
+
+/// Keeps the toolbar just under the image rather than at the bottom of the window,
+/// which can be far away when a wide image leaves room above and below it.
+private struct HugsImage: ViewModifier {
+    let model: EditorModel
+    @State private var height: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+            .padding(.bottom, max(16, model.imageBottomInset - height - 14))
     }
 }

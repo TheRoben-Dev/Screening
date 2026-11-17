@@ -101,6 +101,8 @@ final class EditorModel {
     /// Hidden from the canvas while the inline text field stands in for it.
     var editingTextID: UUID? { didSet { redraw() } }
     var isEditingText = false
+    /// Space between the bottom of the window and the bottom of the image, in points, for keeping the toolbar beside it.
+    var imageBottomInset: CGFloat = 0
 
     private(set) var tool: EditorTool = .arrow
     private var toolBeforeCrop: EditorTool = .arrow
