@@ -1,24 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Frosted Liquid Glass showing whatever is behind the window. The clear style is the only
-/// one that keeps the colors behind it: the regular glass and the materials go nearly opaque.
-struct FrostedBackground: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSGlassEffectView {
-        let view = NSGlassEffectView()
-        view.style = .clear
-        view.cornerRadius = 0 // The window clips its own corners.
-        // Evens out what's behind: keeps bright windows from glaring and gives the shadow a midtone to land on.
-        view.tintColor = NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            return isDark ? NSColor(white: 0.12, alpha: 0.38) : NSColor(white: 0.92, alpha: 0.30)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSGlassEffectView, context: Context) {}
-}
-
 struct EditorCanvas: NSViewRepresentable {
     let model: EditorModel
     let onViewCreated: (EditorCanvasView) -> Void
@@ -34,6 +16,8 @@ struct EditorCanvas: NSViewRepresentable {
 
 final class EditorCanvasView: NSView, NSTextFieldDelegate {
     private let model: EditorModel
+    /// Closes the editor with the current image on the clipboard.
+    var onEscape: (() -> Void)?
 
     private enum Drag {
         case drawing(start: CGPoint)
@@ -165,6 +149,11 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         guard let cg = NSGraphicsContext.current?.cgContext else { return }
         let frame = imageFrame, display = model.displayRect, scale = viewScale
 
+        // The window has no background, but fully clear pixels let clicks fall through to the app
+        // behind. A wash too faint to see keeps the empty space part of the editor.
+        cg.setFillColor(CGColor(gray: 0, alpha: 0.004))
+        cg.fill(bounds)
+
         let shadow = shadowMargins
         let sceneRect = CGRect(x: frame.minX - shadow.left * scale, y: frame.minY - shadow.top * scale,
                                width: frame.width + (shadow.left * 2) * scale,
@@ -277,6 +266,14 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
         let raw = imagePoint(event)
         let point = clamped(raw)
 
+        // With no window background to grab, the empty space around the image moves the window.
+        let viewPoint = convert(event.locationInWindow, from: nil)
+        if model.tool != .crop, !imageFrame.insetBy(dx: -16, dy: -16).contains(viewPoint),
+           model.topAnnotation(at: raw, tolerance: 6 / viewScale) == nil {
+            window?.performDrag(with: event)
+            return
+        }
+
         switch model.tool {
         case .select:
             let hit = model.topAnnotation(at: raw, tolerance: 6 / viewScale)
@@ -381,7 +378,8 @@ final class EditorCanvasView: NSView, NSTextFieldDelegate {
             if model.tool == .crop { model.applyCrop() }
             return
         case 53: // Escape
-            if model.tool == .crop { model.cancelCrop() } else { model.selectedID = nil }
+            // Leaving the crop comes first, so Escape still backs out of a crop without closing.
+            if model.tool == .crop { model.cancelCrop() } else { onEscape?() }
             return
         default:
             break

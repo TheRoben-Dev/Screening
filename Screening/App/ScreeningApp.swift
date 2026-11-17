@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Don't grab global hotkeys while hosting unit tests.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         AppCoordinator.shared.start()
+        if AppSettings.shared.checksForUpdates { Updater.shared.startAutomaticChecks() }
 
         // `Screening --edit image.png [--shadow]` opens the editor on an existing image.
         let args = CommandLine.arguments
@@ -50,6 +51,14 @@ private struct MenuBarIcon: View {
 private struct MenuContent: View {
     let settings: AppSettings
     let coordinator: AppCoordinator
+
+    private var updateTitle: String {
+        switch Updater.shared.state {
+        case .ready(let version): "Install Screening \(version)…"
+        case .downloading(let version): "Downloading Screening \(version)…"
+        default: "Check for Updates…"
+        }
+    }
 
     var body: some View {
         ForEach(CaptureAction.allCases) { action in
@@ -83,6 +92,7 @@ private struct MenuContent: View {
             try? FileManager.default.createDirectory(at: settings.saveFolder, withIntermediateDirectories: true)
             NSWorkspace.shared.open(settings.saveFolder)
         }
+        Button(updateTitle) { Updater.shared.checkFromMenu() }
         Button("Settings…") { SettingsWindowController.shared.show() }
             .keyboardShortcut(",")
         Divider()

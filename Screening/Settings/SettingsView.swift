@@ -52,6 +52,18 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section {
+                Toggle("Check for updates automatically", isOn: $settings.checksForUpdates)
+                LabeledContent("Version \(Updater.shared.currentVersion)") {
+                    Button("Check Now") { Updater.shared.checkFromMenu() }
+                }
+            } header: {
+                Text("Updates")
+            } footer: {
+                Text("Looks for new releases on GitHub once a day. Nothing about you or your screenshots is sent.")
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Keyboard Shortcuts") {
                 recorderRow(.area, title: "Selection")
                 recorderRow(.window, title: "Window")

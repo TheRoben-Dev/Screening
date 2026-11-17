@@ -30,6 +30,7 @@ final class AppSettings {
         static let addsShadow = "addsShadow"
         static let clipboardMode = "clipboardMode"
         static let hotKeys = "hotKeys"
+        static let checksForUpdates = "checksForUpdates"
     }
 
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -63,6 +64,13 @@ final class AppSettings {
         }
     }
 
+    var checksForUpdates: Bool {
+        didSet {
+            defaults.set(checksForUpdates, forKey: Key.checksForUpdates)
+            if checksForUpdates { Updater.shared.startAutomaticChecks() } else { Updater.shared.stopAutomaticChecks() }
+        }
+    }
+
     var launchesAtLogin: Bool {
         get { SMAppService.mainApp.status == .enabled }
         set {
@@ -71,7 +79,7 @@ final class AppSettings {
     }
 
     private init() {
-        defaults.register(defaults: [Key.playsAnimation: true, Key.addsShadow: true])
+        defaults.register(defaults: [Key.playsAnimation: true, Key.addsShadow: true, Key.checksForUpdates: true])
 
         if let path = defaults.string(forKey: Key.folder) {
             saveFolder = URL(fileURLWithPath: path)
@@ -83,6 +91,7 @@ final class AppSettings {
         playsAnimation = defaults.bool(forKey: Key.playsAnimation)
         recents = (defaults.stringArray(forKey: Key.recents) ?? []).map { URL(fileURLWithPath: $0) }
         addsShadow = defaults.bool(forKey: Key.addsShadow)
+        checksForUpdates = defaults.bool(forKey: Key.checksForUpdates)
         captureSound = defaults.string(forKey: Key.captureSound).flatMap(CaptureSound.init(rawValue:)) ?? .tink
         clipboardMode = defaults.string(forKey: Key.clipboardMode).flatMap(CaptureMode.init(rawValue:)) ?? .area
 

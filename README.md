@@ -44,10 +44,11 @@ Screening is a menu bar screenshot app for macOS, built to feel like it came wit
 | ⌘C | Copy the edited image |
 | ⌘P | Pin to screen |
 | ⌘S or ⌘↩ | Save and close |
+| Esc | Copy the image as it looks now, then close. The saved file is left as captured |
 | ↩ | Apply the crop |
 | Delete | Delete the selected annotation |
 
-The editor's background is clear Liquid Glass showing a blur of what's behind the window. Its toolbar collapses in stages as the window narrows, so nothing clips.
+The editor has no window background: the screenshot and its Liquid Glass controls float on their own, and dragging the empty space around the image moves the window. The toolbar collapses in stages as the window narrows, so nothing clips.
 
 ### After a capture
 
@@ -83,7 +84,7 @@ Get the `.dmg` from the [latest release](https://github.com/TheRoben-Dev/Screeni
 
 You only have to do this once. Only do it if you're comfortable running AI-written software from an unverified developer. You can read the source here and build it yourself instead.
 
-**Updating:** each release counts as a new app to macOS, so you may need to grant Screen Recording again. See [Permissions](#permissions).
+**Updating:** from version 1.1, Screening checks GitHub for a new release once a day, downloads it and offers to install it and relaunch. You can also pick **Check for Updates…** in the menu, or turn automatic checks off in Settings. Each release counts as a new app to macOS, so you may need to grant Screen Recording again. See [Permissions](#permissions).
 
 ## Requirements for building
 
@@ -137,7 +138,7 @@ tccutil reset ScreenCapture com.theroben.Screening
 
 Then capture again and grant access. Signing with a stable certificate stops this from recurring. Set `CODE_SIGN_IDENTITY` and `DEVELOPMENT_TEAM` in `project.yml`.
 
-Global shortcuts use Carbon hotkeys, so they don't need Accessibility access. The app is not sandboxed, which lets it save to any folder you choose. Screenshots stay on your Mac: the app has no networking code.
+Global shortcuts use Carbon hotkeys, so they don't need Accessibility access. The app is not sandboxed, which lets it save to any folder you choose. Screenshots stay on your Mac. The only network traffic is the update check, which asks GitHub's public API for the latest release and downloads its disk image. It sends nothing about you or your screenshots, and you can turn it off in Settings.
 
 ## How it works
 
@@ -161,6 +162,14 @@ ScreeningTests/  Unit tests that also drive the real editor and overlay views
 scripts/         Build script, plus generators for the sounds and icon
 project.yml      XcodeGen project definition
 ```
+
+### Publishing a release
+
+The updater reads the latest GitHub release. Its tag must be the version with a `v` in front, it needs a `.dmg` asset, and the version must be higher than the installed one. If the release notes include a line like `**SHA-256:** \`<hash>\``, the download is checked against it before installing.
+
+1. Raise `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`) in `project.yml`.
+2. Run `scripts/make_dmg.sh`, then `shasum -a 256 build/Screening-<version>.dmg` and put the hash in the release notes.
+3. `gh release create v<version> build/Screening-<version>.dmg --title "Screening <version>" --notes-file <notes>`
 
 To change a sound, edit its script and run it, for example `python3 scripts/make_liquid_sound.py`, then rebuild.
 

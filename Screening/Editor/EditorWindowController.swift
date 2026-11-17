@@ -1,6 +1,13 @@
 import SwiftUI
 
 private final class EditorWindow: NSWindow {
+    var onEscape: (() -> Void)?
+
+    /// Escape reaches here when something other than the canvas has focus, such as a toolbar button.
+    override func cancelOperation(_ sender: Any?) {
+        if attachedSheet == nil, let onEscape { onEscape() } else { super.cancelOperation(sender) }
+    }
+
     /// An accessory app can run without a main menu, so route the standard keys here too.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if super.performKeyEquivalent(with: event) { return true }
@@ -29,7 +36,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
 
     private let model: EditorModel
     private let url: URL
-    private let window: NSWindow
+    private let window: EditorWindow
     private weak var canvas: EditorCanvasView?
     private var isSaving = false
 
@@ -47,14 +54,19 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         window.titleVisibility = .hidden // Unreadable on glass over a bright background.
         window.isOpaque = false
         window.backgroundColor = .clear
+        // No window behind the image: the screenshot and its controls float on their own.
+        // The image draws its own shadow, and a system shadow traced from transparent content goes stale.
+        window.hasShadow = false
         window.isReleasedWhenClosed = false
         window.minSize = CGSize(width: Self.minimumWidth, height: 340)
         window.delegate = self
+        window.onEscape = { [weak self] in self?.copyAndClose() }
 
         let root = ZStack(alignment: .bottom) {
-            FrostedBackground()
-                .ignoresSafeArea()
-            EditorCanvas(model: model) { [weak self] in self?.canvas = $0 }
+            EditorCanvas(model: model) { [weak self] canvas in
+                self?.canvas = canvas
+                canvas.onEscape = { [weak self] in self?.copyAndClose() }
+            }
                 .ignoresSafeArea()
             EditorToolbar(
                 model: model,
@@ -94,6 +106,26 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         canvas?.finishTextEditing()
         guard let image = model.render() else { return }
         Task { try? await Clipboard.copy(image) }
+    }
+
+    /// Escape: leave with the image as it looks right now on the clipboard. The saved file is left as it was.
+    private func copyAndClose() {
+        guard !isSaving, window.attachedSheet == nil else { return }
+        canvas?.finishTextEditing()
+        guard let image = model.render() else {
+            close()
+            return
+        }
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do {
+                try await Clipboard.copy(image)
+                close()
+            } catch {
+                Alerts.show(error, title: "Couldn’t copy the screenshot")
+            }
+        }
     }
 
     private func done() {

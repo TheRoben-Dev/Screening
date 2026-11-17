@@ -416,4 +416,38 @@ final class ScreeningTests: XCTestCase {
     @MainActor func testRefractionShaderCompiles() {
         XCTAssertNotNil(RefractionRenderer.shared)
     }
+
+    @MainActor private func escape(in view: NSView) -> NSEvent {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                         windowNumber: view.window!.windowNumber, context: nil, characters: "\u{1b}",
+                         charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)!
+    }
+
+    @MainActor func testEscapeLeavesTheEditor() {
+        let (_, canvas, window) = makeCanvas()
+        defer { window.close() }
+        var escaped = false
+        canvas.onEscape = { escaped = true }
+        canvas.keyDown(with: escape(in: canvas))
+        XCTAssertTrue(escaped)
+    }
+
+    @MainActor func testEscapeBacksOutOfACropFirst() {
+        let (model, canvas, window) = makeCanvas()
+        defer { window.close() }
+        var escaped = false
+        canvas.onEscape = { escaped = true }
+        model.choose(.crop)
+        canvas.keyDown(with: escape(in: canvas))
+        XCTAssertFalse(escaped)
+        XCTAssertNotEqual(model.tool, .crop)
+    }
+
+    func testUpdateVersionComparison() {
+        XCTAssertTrue(Updater.isVersion("1.1", newerThan: "1.0"))
+        XCTAssertTrue(Updater.isVersion("1.10", newerThan: "1.9"))
+        XCTAssertTrue(Updater.isVersion("2", newerThan: "1.9.9"))
+        XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1"))
+        XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1.1"))
+    }
 }
