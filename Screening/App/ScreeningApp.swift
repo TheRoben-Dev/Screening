@@ -21,10 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppCoordinator.shared.start()
         if AppSettings.shared.checksForUpdates { Updater.shared.startAutomaticChecks() }
 
-        // `Screening --edit image.png [--shadow]` opens the editor on an existing image.
+        // `Screening --edit image.png [--shadow] [--all-tools]` opens the editor on an existing image.
         let args = CommandLine.arguments
         if let flag = args.firstIndex(of: "--edit"), flag + 1 < args.count {
-            AppCoordinator.shared.openEditor(fileAt: URL(fileURLWithPath: args[flag + 1]), showsShadow: args.contains("--shadow"))
+            AppCoordinator.shared.openEditor(fileAt: URL(fileURLWithPath: args[flag + 1]), showsShadow: args.contains("--shadow"),
+                                             showsAllTools: args.contains("--all-tools"))
         }
         // `Screening --trigger display` runs a capture action without its hotkey.
         if let flag = args.firstIndex(of: "--trigger"), flag + 1 < args.count,

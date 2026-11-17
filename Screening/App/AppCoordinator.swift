@@ -85,10 +85,11 @@ final class AppCoordinator {
         timerTask?.cancel()
     }
 
-    func openEditor(fileAt url: URL, showsShadow: Bool) {
+    func openEditor(fileAt url: URL, showsShadow: Bool, showsAllTools: Bool = false) {
         guard let image = ImageFile.load(url) else { return }
         let scale = NSScreen.main?.backingScaleFactor ?? 2
-        EditorWindowController.open(Screenshot(image: image, scale: scale), savedAt: url, showsShadow: showsShadow)
+        EditorWindowController.open(Screenshot(image: image, scale: scale), savedAt: url, showsShadow: showsShadow,
+                                    showsAllTools: showsAllTools)
     }
 
     private func copyText(in image: CGImage) async {

@@ -2,18 +2,18 @@ import SwiftUI
 
 /// How much of the toolbar fits. Groups collapse one at a time as the window narrows.
 enum ToolbarLevel: CaseIterable, Comparable {
-    case minimal    // Tools, style and actions are all menus.
-    case condensed  // History and actions share one menu.
-    case compact    // Colors and sizes move into a popover.
+    case minimal    // Tools and actions are both menus.
+    case condensed  // Undo, shadow and the actions share one menu.
+    case compact    // Crop's Reset and Apply become icons.
     case full
 
     /// The narrowest toolbar width this level is guaranteed to fit in.
     var minimumWidth: CGFloat {
         switch self {
-        case .minimal: 312
+        case .minimal: 300
         case .condensed: 584
-        case .compact: 652
-        case .full: 850
+        case .compact: 762
+        case .full: 816
         }
     }
 
@@ -55,77 +55,28 @@ struct EditorToolbarContent: View {
     @State private var showsStylePopover = false
 
     var body: some View {
-        GlassEffectContainer(spacing: 10) {
-            if model.isEditing { editingBar } else { essentialsBar }
-        }
-        .background { shortcuts }
-        .animation(.smooth(duration: 0.25), value: model.tool)
-        .animation(.smooth(duration: 0.3), value: model.isEditing)
-    }
-
-    /// What most captures need: copy, pin, delete and done, with markup one click away.
-    private var essentialsBar: some View {
         HStack(spacing: 10) {
-            Button {
-                model.setEditing(true)
-            } label: {
-                Label("Edit", systemImage: "pencil.tip.crop.circle")
-                    .padding(.horizontal, 14)
-                    .frame(height: 40)
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .capsule)
-            .glassEffectID("tools", in: glass)
-            .help("Crop and mark up the screenshot")
-
-            HStack(spacing: 2) {
-                iconButton("pin", "Pin to Screen", action: onPin)
-                iconButton("doc.on.doc", "Copy", action: onCopy)
-                iconButton("trash", "Delete Screenshot", action: onDelete)
-            }
-            .padding(4)
-            .glassEffect(.regular.interactive(), in: .capsule)
-            .glassEffectID("actions", in: glass)
-
-            doneButton
-        }
-    }
-
-    private var closeEditingButton: some View {
-        Button {
-            model.setEditing(false)
-        } label: {
-            Image(systemName: "chevron.backward")
-                .frame(width: 40, height: 40)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .glassEffectID("close", in: glass)
-        .help("Hide the markup tools")
-        .accessibilityLabel("Hide Tools")
-    }
-
-    private var editingBar: some View {
-            HStack(spacing: 10) {
-                closeEditingButton
                 if level == .minimal { toolsMenu } else { tools }
 
                 if model.tool == .crop {
                     cropControls
                 } else if model.usesStyle {
-                    if level == .full { styleControls } else { styleButton }
+                    styleButton
                 }
 
-                // Pin, copy and delete stay on the essentials bar, which keeps this one narrower.
+                // Undo, redo and the shadow come out with the rest of the tools.
                 if level >= .compact {
-                    history
+                    if model.showsAllTools { history }
+                    actions
                 } else {
                     moreMenu
                 }
                 doneButton
-            }
+        }
+        .fixedSize()
+        .background { shortcuts }
+        .animation(.smooth(duration: 0.25), value: model.tool)
+        .animation(.smooth(duration: 0.3), value: model.showsAllTools)
     }
 
     /// Always present, so the keys keep working while their buttons are collapsed into a menu.
@@ -159,9 +110,12 @@ struct EditorToolbarContent: View {
 
     // MARK: Tools
 
+    /// The everyday tools always show. The rest slide out of the same strip, so nothing jumps around.
     private var tools: some View {
         HStack(spacing: 2) {
-            ForEach(EditorTool.allCases) { tool in
+            // The extras line up after the everyday tools, so those never move when the strip grows.
+            ForEach(EditorTool.allCases.filter(\.isEveryday)
+                    + (model.showsAllTools ? EditorTool.allCases.filter { !$0.isEveryday } : [])) { tool in
                 Button {
                     model.choose(tool)
                 } label: {
@@ -181,10 +135,23 @@ struct EditorToolbarContent: View {
                 .help("\(tool.title) (\(String(tool.shortcut).uppercased()))")
                 .accessibilityLabel(tool.title)
             }
+
+            Divider().frame(height: 18).padding(.horizontal, 3)
+
+            Button {
+                model.setShowsAllTools(!model.showsAllTools)
+            } label: {
+                Image(systemName: model.showsAllTools ? "chevron.backward" : "ellipsis")
+                    .frame(width: 32, height: 32)
+                    .contentShape(Circle())
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .buttonStyle(.plain)
+            .help(model.showsAllTools ? "Fewer Tools" : "More Tools: steps, highlight, blur, undo and shadow")
+            .accessibilityLabel(model.showsAllTools ? "Fewer Tools" : "More Tools")
         }
         .padding(4)
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .glassEffectID("tools", in: glass)
+        .desktopGlass()
     }
 
     private var toolsMenu: some View {
@@ -207,26 +174,13 @@ struct EditorToolbarContent: View {
         .menuIndicator(.hidden)
         .buttonStyle(.plain)
         .fixedSize()
-        .glassEffect(.regular.interactive(), in: .circle)
-        .glassEffectID("tools", in: glass)
+        .desktopGlass()
         .help("Tool: \(model.tool.title)")
         .accessibilityLabel("Tool")
         .accessibilityValue(model.tool.title)
     }
 
     // MARK: Style
-
-    private var styleControls: some View {
-        HStack(spacing: 6) {
-            swatches
-            Divider().frame(height: 18).padding(.horizontal, 2)
-            sizes
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 40)
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .glassEffectID("style", in: glass)
-    }
 
     private var styleButton: some View {
         Button {
@@ -240,8 +194,7 @@ struct EditorToolbarContent: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .glassEffectID("style", in: glass)
+        .desktopGlass()
         .help("Color and Size")
         .accessibilityLabel("Color and Size")
         .popover(isPresented: $showsStylePopover, arrowEdge: .top) {
@@ -297,13 +250,19 @@ struct EditorToolbarContent: View {
     @ViewBuilder
     private var cropControls: some View {
         if level == .full {
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
                 Button("Reset") { model.resetCrop() }
                     .disabled(model.draftCrop == nil)
+                    .padding(.horizontal, 14)
+                    .frame(height: 40)
+                Divider().frame(height: 18)
                 Button("Apply") { model.applyCrop() }
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 14)
+                    .frame(height: 40)
             }
-            .buttonStyle(.glass)
-            .controlSize(.large)
+            .buttonStyle(.plain)
+            .desktopGlass()
         } else {
             HStack(spacing: 2) {
                 iconButton("arrow.counterclockwise", "Reset Crop") { model.resetCrop() }
@@ -311,7 +270,7 @@ struct EditorToolbarContent: View {
                 iconButton("checkmark", "Apply Crop") { model.applyCrop() }
             }
             .padding(4)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            .desktopGlass()
         }
     }
 
@@ -341,8 +300,17 @@ struct EditorToolbarContent: View {
 
         }
         .padding(4)
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .glassEffectID("history", in: glass)
+        .desktopGlass()
+    }
+
+    private var actions: some View {
+        HStack(spacing: 2) {
+            iconButton("pin", "Pin to Screen (⌘P)", action: onPin)
+            iconButton("doc.on.doc", "Copy (⌘C)", action: onCopy)
+            iconButton("trash", "Delete Screenshot", action: onDelete)
+        }
+        .padding(4)
+        .desktopGlass()
     }
 
     private var moreMenu: some View {
@@ -364,8 +332,7 @@ struct EditorToolbarContent: View {
         .menuIndicator(.hidden)
         .buttonStyle(.plain)
         .fixedSize()
-        .glassEffect(.regular.interactive(), in: .circle)
-        .glassEffectID("actions", in: glass)
+        .desktopGlass()
         .help("More")
         .accessibilityLabel("More")
     }
@@ -404,5 +371,33 @@ struct EditorToolbarContent: View {
         .buttonStyle(.plain)
         .help(title)
         .accessibilityLabel(title)
+    }
+}
+
+/// Liquid Glass that samples the desktop behind the window. SwiftUI's glass only refracts the window's
+/// own content, and the editor window is see-through, so that glass would come out flat.
+private struct DesktopGlass: NSViewRepresentable {
+    let cornerRadius: CGFloat
+
+    func makeNSView(context: Context) -> NSGlassEffectView {
+        let view = NSGlassEffectView()
+        view.style = .regular
+        view.cornerRadius = cornerRadius
+        return view
+    }
+
+    func updateNSView(_ view: NSGlassEffectView, context: Context) {
+        view.cornerRadius = cornerRadius
+    }
+}
+
+extension View {
+    /// A capsule, or a circle for a square view, of glass behind the content.
+    func desktopGlass() -> some View {
+        background {
+            GeometryReader { geometry in
+                DesktopGlass(cornerRadius: min(geometry.size.width, geometry.size.height) / 2)
+            }
+        }
     }
 }

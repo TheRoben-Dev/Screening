@@ -324,8 +324,8 @@ final class ScreeningTests: XCTestCase {
         for level in ToolbarLevel.allCases {
             for tool in EditorTool.allCases {
                 let model = EditorModel(screenshot: Screenshot(image: makeImage(), scale: 2))
+                model.setShowsAllTools(true)
                 model.choose(tool)
-                model.isEditing = true
                 let content = EditorToolbarContent(model: model, level: level, onCopy: {}, onDelete: {}, onPin: {}, onDone: {})
                 let width = NSHostingView(rootView: content).fittingSize.width
                 print("toolbar", level, tool, width)
@@ -335,14 +335,15 @@ final class ScreeningTests: XCTestCase {
         }
     }
 
-    @MainActor func testEssentialsToolbarFitsTheSmallestWindow() {
+    @MainActor func testExtraToolsHideAndComeOutWhenNeeded() {
         let model = EditorModel(screenshot: Screenshot(image: makeImage(), scale: 2))
-        model.setEditing(false)
-        let content = EditorToolbarContent(model: model, level: .full, onCopy: {}, onDelete: {}, onPin: {}, onDone: {})
-        XCTAssertLessThanOrEqual(NSHostingView(rootView: content).fittingSize.width, ToolbarLevel.minimal.minimumWidth - 16)
-        XCTAssertEqual(model.tool, .select)
-        model.choose(.pen) // A tool's key brings the tools out.
-        XCTAssertTrue(model.isEditing)
+        XCTAssertFalse(model.showsAllTools)
+        model.choose(.blur) // A hidden tool's key brings the full set out.
+        XCTAssertTrue(model.showsAllTools)
+        model.setShowsAllTools(false)
+        XCTAssertEqual(model.tool, .arrow, "Hiding the tools puts down the one that disappears")
+        model.choose(.crop)
+        XCTAssertFalse(model.showsAllTools)
     }
 
     @MainActor func testSmallestToolbarFitsTheSmallestWindow() {

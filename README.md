@@ -48,7 +48,7 @@ Screening is a menu bar screenshot app for macOS, built to feel like it came wit
 | ↩ | Apply the crop |
 | Delete | Delete the selected annotation |
 
-The editor has no window background: the screenshot and its Liquid Glass controls float on their own, and dragging the empty space around the image moves the window. The toolbar sits right under the image. It starts with just the essentials (Edit, Pin, Copy, Delete and Done), and **Edit** brings out the crop and markup tools, colors, undo and the shadow toggle. Pressing a tool's key opens them too. The markup toolbar collapses in stages as the window narrows, so nothing clips.
+The editor has no window background: the screenshot and its Liquid Glass controls float on their own, and dragging the empty space around the image moves the window. The toolbar sits right under the image. Crop, pen, arrow, rectangle and text are always on it, along with the color, Pin, Copy, Delete and Done. The **⋯** button slides out select, numbered steps, highlight and blur, plus undo, redo and the shadow toggle. Pressing one of those tools' keys brings them out too. The toolbar's Liquid Glass shows the desktop behind it. The toolbar collapses in stages as the window narrows, so nothing clips.
 
 ### After a capture
 

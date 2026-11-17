@@ -28,8 +28,9 @@ private final class EditorWindow: NSWindow {
 final class EditorWindowController: NSObject, NSWindowDelegate {
     private static var open: [EditorWindowController] = []
 
-    static func open(_ shot: Screenshot, savedAt url: URL, showsShadow: Bool) {
+    static func open(_ shot: Screenshot, savedAt url: URL, showsShadow: Bool, showsAllTools: Bool = false) {
         let controller = EditorWindowController(shot: shot, url: url, showsShadow: showsShadow)
+        controller.model.setShowsAllTools(showsAllTools)
         open.append(controller)
         controller.show()
     }
@@ -61,7 +62,6 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         window.minSize = CGSize(width: Self.minimumWidth, height: Self.minimumHeight)
         window.delegate = self
         window.onEscape = { [weak self] in self?.copyAndClose() }
-        model.setEditing(false) // Opens with just the essentials; Edit brings out the markup tools.
 
         let root = ZStack(alignment: .bottom) {
             EditorCanvas(model: model) { [weak self] canvas in
@@ -85,8 +85,8 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
 
     private static let minimumWidth: CGFloat = 340
     private static let minimumHeight: CGFloat = 240
-    /// Room for the markup tools once Edit is pressed, with colors in a popover. Wider windows show them inline.
-    private static let openingWidth: CGFloat = 760
+    /// Room for the whole toolbar once its extra tools come out. The window is see-through, so spare width costs nothing.
+    private static let openingWidth: CGFloat = 820
 
     private static func initialFrame(for shot: Screenshot, showsShadow: Bool) -> CGRect {
         let margin = ScreenshotShadow.margin

@@ -34,6 +34,14 @@ enum EditorTool: String, CaseIterable, Identifiable {
         }
     }
 
+    /// On the toolbar from the start. The others wait behind its More Tools button.
+    var isEveryday: Bool {
+        switch self {
+        case .crop, .pen, .arrow, .box, .text: true
+        case .select, .step, .highlight, .blur: false
+        }
+    }
+
     var shortcut: Character {
         switch self {
         case .select: "v"
@@ -106,9 +114,8 @@ final class EditorModel {
 
     private(set) var tool: EditorTool = .arrow
     private var toolBeforeCrop: EditorTool = .arrow
-    /// The markup tools are tucked behind the toolbar's Edit button until they're wanted.
-    var isEditing = false
-    private var lastMarkupTool: EditorTool = .arrow
+    /// Only the everyday tools show until the toolbar is expanded.
+    private(set) var showsAllTools = false
 
     private var penColor: AnnotationColor = .red
     private var markerColor: AnnotationColor = .yellow
@@ -195,23 +202,16 @@ final class EditorModel {
             draftCrop = crop
         }
         if newTool != .select { selectedID = nil }
-        if newTool != .select { isEditing = true }
-        if newTool != .select, newTool != .crop { lastMarkupTool = newTool }
+        if !newTool.isEveryday { showsAllTools = true } // Its key was pressed, so show where it went.
         tool = newTool
         onToolChange?()
         redraw()
     }
 
-    /// Opening the markup tools picks up the last one used. Closing them leaves the image safe to click.
-    func setEditing(_ editing: Bool) {
-        if editing {
-            choose(lastMarkupTool)
-            isEditing = true
-        } else {
-            choose(.select)
-            selectedID = nil
-            isEditing = false
-        }
+    /// Hiding the extra tools also puts down one of them, since its button would vanish.
+    func setShowsAllTools(_ shows: Bool) {
+        if !shows, !tool.isEveryday { choose(.arrow) }
+        showsAllTools = shows
     }
 
     func applyCrop() { choose(toolBeforeCrop == .crop ? .select : toolBeforeCrop) }
