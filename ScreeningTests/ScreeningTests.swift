@@ -459,6 +459,8 @@ final class ScreeningTests: XCTestCase {
         XCTAssertTrue(Updater.isVersion("1.1", newerThan: "1.0"))
         XCTAssertTrue(Updater.isVersion("1.10", newerThan: "1.9"))
         XCTAssertTrue(Updater.isVersion("2", newerThan: "1.9.9"))
+        XCTAssertTrue(Updater.isVersion("1.1.1", newerThan: "1.1"))
+        XCTAssertFalse(Updater.isVersion("1.1", newerThan: "1.1.1"))
         XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1"))
         XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1.1"))
     }
