@@ -1,7 +1,20 @@
 import SwiftUI
 
-private final class EditorWindow: NSWindow {
+/// A panel that can take keystrokes without activating the app. macOS treats activation as a request it
+/// may turn down, and after a capture from a hotkey it often does, which left Esc going to the app behind.
+private final class EditorWindow: NSPanel {
     var onEscape: (() -> Void)?
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53, attachedSheet == nil, let onEscape {
+            onEscape()
+        } else {
+            super.keyDown(with: event)
+        }
+    }
 
     /// Escape reaches here when something other than the canvas has focus, such as a toolbar button.
     override func cancelOperation(_ sender: Any?) {
@@ -46,7 +59,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         self.url = url
         window = EditorWindow(
             contentRect: Self.initialFrame(for: shot, showsShadow: showsShadow),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered, defer: false)
         super.init()
 
@@ -59,6 +72,10 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         // The image draws its own shadow, and a system shadow traced from transparent content goes stale.
         window.hasShadow = false
         window.isReleasedWhenClosed = false
+        // Behave like a document window, not a utility panel.
+        window.hidesOnDeactivate = false
+        window.isFloatingPanel = false
+        window.becomesKeyOnlyIfNeeded = false
         window.minSize = CGSize(width: Self.minimumWidth, height: Self.minimumHeight)
         window.delegate = self
         window.onEscape = { [weak self] in self?.copyAndClose() }
@@ -81,6 +98,8 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         let hosting = NSHostingView(rootView: root)
         hosting.sizingOptions = []
         window.contentView = hosting
+        // Build the canvas now, so it can take keystrokes the moment the window appears.
+        hosting.layoutSubtreeIfNeeded()
     }
 
     private static let minimumWidth: CGFloat = 340

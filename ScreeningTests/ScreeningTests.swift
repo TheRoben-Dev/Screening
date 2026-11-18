@@ -464,4 +464,15 @@ final class ScreeningTests: XCTestCase {
         XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1"))
         XCTAssertFalse(Updater.isVersion("1.0", newerThan: "1.1"))
     }
+
+    /// Esc should work straight away, without clicking the editor first.
+    @MainActor func testEditorOpensReadyForKeystrokes() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("focus-\(UUID().uuidString).png")
+        EditorWindowController.open(Screenshot(image: makeImage(width: 800, height: 400), scale: 2),
+                                    savedAt: url, showsShadow: false)
+        let window = try XCTUnwrap(NSApp.windows.last { $0.firstResponder is EditorCanvasView })
+        defer { window.delegate?.windowShouldClose?(window); window.close() }
+        XCTAssertTrue(window.isKeyWindow)
+        XCTAssertTrue(window.styleMask.contains(.nonactivatingPanel), "Needs no app activation to take keys")
+    }
 }
